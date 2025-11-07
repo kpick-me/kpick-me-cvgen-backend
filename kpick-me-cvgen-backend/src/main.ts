@@ -20,49 +20,34 @@ async function bootstrap() {
 }
 bootstrap();
 
-// ===== auth/strategies/jwt.strategy.ts =====
 
 
-// ===== user/user.entity.ts =====
 
 
-// ===== user/user.module.ts =====
 
 
-// ===== cv/cv.entity.ts =====
 
 
-// ===== cv/cv.controller.ts =====
 
 
-// ===== cv/cv.service.ts =====
 
 
-// ===== cv/dto/cv.dto.ts =====
 
 
-// ===== cv/cv.module.ts =====
 
 
-// ===== interview/interview.entity.ts =====
 
 
-// ===== interview/interview.controller.ts =====
 
 
-// ===== interview/interview.service.ts =====
 
 
-// ===== interview/interview.module.ts =====
 
 
-// ===== training/training-progress.entity.ts =====
 
 
-// ===== training/training.controller.ts =====
 
 
-// ===== training/training.service.ts =====
 
 
 // ===== training/training.module.ts =====

@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CV, Prisma } from '@prisma/client';
 import { CreateCvDto, UpdateCvDto } from './dto/cv.dto';
-// Document export libraries removed per project policy (Prisma-only, no doc exports)
 
 @Injectable()
 export class CvService {
