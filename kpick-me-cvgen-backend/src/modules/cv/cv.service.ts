@@ -2,13 +2,17 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CV, Prisma } from '@prisma/client';
 import { CreateCvDto, UpdateCvDto } from './dto/cv.dto';
+import { AiService } from '../ai/ai.service';
 import PDFDocument from 'pdfkit';
 import * as htmlDocx from 'html-docx-js';
 import { Buffer } from 'buffer';
 
 @Injectable()
 export class CvService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private aiService: AiService,
+  ) {}
 
   async findAllByUser(userId: string): Promise<CV[]> {
     return this.prisma.cV.findMany({ where: { userId } });
@@ -121,8 +125,70 @@ export class CvService {
   }
   
   async generateShareLink(id: string, userId: string): Promise<{ link: string }> {
-    const cv = await this.findOne(id, userId);
-    const shareToken = Buffer.from(`${cv.id}:${Date.now()}`).toString('base64');
-    return { link: `${process.env.FRONTEND_URL}/cv/share/${shareToken}` };
-  }
+    const cv = await this.findOne(id, userId);
+    const shareToken = Buffer.from(`${cv.id}:${Date.now()}`).toString('base64');
+    return { link: `${process.env.FRONTEND_URL}/cv/share/${shareToken}` };
+  }
+
+  async generateWithAi(data: any, userId: string): Promise<CV> {
+    const aiResult = await this.aiService.generateCv(data, userId);
+    
+    return this.prisma.cV.create({
+      data: {
+        userId,
+        template: 'ai-generated',
+        content: {
+          title: data.fullName ? `${data.fullName} - Resume` : 'AI Generated Resume',
+          body: aiResult.content,
+          metadata: aiResult.metadata,
+        },
+      },
+    });
+  }
+
+  async enhanceWithAi(id: string, userId: string, options?: any): Promise<CV> {
+    const cv = await this.findOne(id, userId);
+    
+    const enhanceData = {
+      cvData: (cv.content as any)?.body || cv.content,
+      targetRole: options?.targetRole,
+      targetIndustry: options?.targetIndustry,
+      focusAreas: options?.focusAreas,
+    };
+
+    const aiResult = await this.aiService.enhanceCv(enhanceData, userId);
+    
+    return this.prisma.cV.update({
+      where: { id },
+      data: {
+        content: {
+          title: (cv.content as any)?.title || 'Enhanced Resume',
+          body: aiResult.content,
+          metadata: aiResult.metadata,
+        },
+      },
+    });
+  }
+
+  async optimizeForJob(id: string, userId: string, jobDescription: string): Promise<CV> {
+    const cv = await this.findOne(id, userId);
+    
+    const optimizeData = {
+      cvData: (cv.content as any)?.body || cv.content,
+      jobDescription,
+    };
+
+    const aiResult = await this.aiService.optimizeCv(optimizeData, userId);
+    
+    return this.prisma.cV.update({
+      where: { id },
+      data: {
+        content: {
+          title: (cv.content as any)?.title || 'Optimized Resume',
+          body: aiResult.content,
+          metadata: aiResult.metadata,
+        },
+      },
+    });
+  }
 }

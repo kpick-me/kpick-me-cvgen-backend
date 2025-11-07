@@ -6,6 +6,8 @@ import { InterviewModule } from './modules/interview/interview.module';
 import { TrainingModule } from './modules/training/training.module';
 import { UserModule } from './modules/user/user.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { CacheModule } from './modules/cache/cache.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -13,6 +15,8 @@ import { PrismaModule } from './prisma/prisma.module';
       isGlobal: true,
     }),
     PrismaModule,
+    CacheModule,
+    AiModule,
     AuthModule,
     CvModule,
     InterviewModule,

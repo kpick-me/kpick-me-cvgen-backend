@@ -62,4 +62,19 @@ export class CvController {
   generateShareLink(@Param('id') id: string, @Req() req) {
     return this.cvService.generateShareLink(id, req.user.id);
   }
+
+  @Post('generate-with-ai')
+  generateWithAi(@Body() data: any, @Req() req) {
+    return this.cvService.generateWithAi(data, req.user.id);
+  }
+
+  @Post(':id/enhance-with-ai')
+  enhanceWithAi(@Param('id') id: string, @Body() options: any, @Req() req) {
+    return this.cvService.enhanceWithAi(id, req.user.id, options);
+  }
+
+  @Post(':id/optimize-for-job')
+  optimizeForJob(@Param('id') id: string, @Body() body: { jobDescription: string }, @Req() req) {
+    return this.cvService.optimizeForJob(id, req.user.id, body.jobDescription);
+  }
 }
