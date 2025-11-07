@@ -19,7 +19,6 @@ export class AuthService {
         googleId: id,
         email: emails[0].value,
         name: displayName,
-        avatar: photos[0]?.value,
       });
     }
     

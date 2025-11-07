@@ -1,53 +1,65 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Interview } from './interview.entity';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { Interview, Prisma } from '@prisma/client';
 
 @Injectable()
 export class InterviewService {
-  constructor(
-    @InjectRepository(Interview)
-    private interviewRepository: Repository<Interview>,
-  ) {}
+  constructor(
+    private prisma: PrismaService, 
+  ) {}
 
-  async findAllByUser(userId: string): Promise<Interview[]> {
-    return this.interviewRepository.find({ where: { user: { id: userId } } });
-  }
-
-  async findOne(id: string, userId: string): Promise<Interview|null> {
-    return this.interviewRepository.findOne({
-      where: { id, user: { id: userId } },
+  async findAllByUser(userId: string): Promise<Interview[]> {
+    return this.prisma.interview.findMany({ 
+      where: { userId },
     });
-  }
+  }
 
-  async startInterview(role: string, cvId: string, userId: string) {
-    // Generate questions using AI (placeholder)
-    const questions = [
-      { question: 'Tell me about yourself', answer: '', feedback: '', score: 0 },
-      { question: 'Why do you want this role?', answer: '', feedback: '', score: 0 },
-      { question: 'What are your strengths?', answer: '', feedback: '', score: 0 },
-    ];
+  async findOne(id: string, userId: string): Promise<Interview | null> {
+    return this.prisma.interview.findFirst({
+      where: { id, userId },
+    });
+  }
 
-    const interview = this.interviewRepository.create({
-      role,
-      questions,
-      overallScore: 0,
-      summary: '',
-      user: { id: userId },
+  async startInterview(role: string, cvId: string, userId: string): Promise<Interview> {
+    const questions = [
+      { question: 'Tell me about yourself', answer: '', feedback: '', score: 0 },
+      { question: 'Why do you want this role?', answer: '', feedback: '', score: 0 },
+      { question: 'What are your strengths?', answer: '', feedback: '', score: 0 },
+    ];
+
+    return this.prisma.interview.create({
+      data: {
+        role,
+        questions,
+        overallScore: 0,
+        summary: '',
+        userId, 
+      }
+    });
+  }
+
+  async submitAnswer(interviewId: string, questionIndex: number, answer: string, userId: string) : Promise<Interview | null> {
+    const interview = await this.findOne(interviewId, userId);
+    
+    if (!interview) {
+      throw new NotFoundException('Interview not found');
+    }
+
+    const questions = interview.questions as any[];
+
+    if (!questions || questionIndex < 0 || questionIndex >= questions.length) {
+      throw new NotFoundException('Invalid question index');
+    }
+
+    questions[questionIndex].answer = answer;
+    questions[questionIndex].feedback = 'Good answer with room for improvement';
+    questions[questionIndex].score = 7;
+
+    return this.prisma.interview.update({
+      where: { id: interviewId },
+      data: {
+        questions: questions,
+      },
     });
-
-    return this.interviewRepository.save(interview);
-  }
-
-  async submitAnswer(interviewId: string, questionIndex: number, answer: string, userId: string) : Promise<Interview|null> {
-    const interview = await this.findOne(interviewId, userId);
-    
-    if (!interview) return null;
-
-    interview.questions[questionIndex].answer = answer;
-    interview.questions[questionIndex].feedback = 'Good answer with room for improvement';
-    interview.questions[questionIndex].score = 7;
-
-    return this.interviewRepository.save(interview);
-  }
+  }
 }
