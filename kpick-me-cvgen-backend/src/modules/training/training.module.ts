@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { TrainingProgress } from './training-progress.entity';
+import { TrainingProgress } from './training-progress.entity'
 import { TrainingService } from './training.service';
 import { TrainingController } from './training.controller';
 

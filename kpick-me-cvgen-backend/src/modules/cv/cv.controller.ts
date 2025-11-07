@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Req, Res } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { CvService } from './cv.service';
 import { CreateCvDto, UpdateCvDto } from './dto/cv.dto';
 

@@ -3,8 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cv } from './cv.entity';
 import { CreateCvDto, UpdateCvDto } from './dto/cv.dto';
-import * as PDFDocument from 'pdfkit';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import PDFDocument from 'pdfkit';
+import * as htmlDocx from 'html-docx-js';
+import { Buffer } from 'buffer';
 
 @Injectable()
 export class CvService {
@@ -55,7 +56,6 @@ export class CvService {
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      // Add content to PDF
       doc.fontSize(20).text(cv.title, { align: 'center' });
       doc.moveDown();
       doc.fontSize(12).text(JSON.stringify(cv.data, null, 2));
@@ -67,26 +67,29 @@ export class CvService {
   async exportToDocx(id: string, userId: string): Promise<Buffer> {
     const cv = await this.findOne(id, userId);
 
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: [
-          new Paragraph({
-            children: [
-              new TextRun({ text: cv.title, bold: true, size: 32 }),
-            ],
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: JSON.stringify(cv.data, null, 2) }),
-            ],
-          }),
-        ],
-      }],
-    });
+    const html = `
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+            body { font-family: Arial, sans-serif; line-height: 1.5; }
+            h1 { font-size: 24pt; font-weight: bold; }
+            pre { background-color: #f7f7f7; padding: 10px; border-radius: 4px; }
+            </style>
+        </head>
+        <body>
+            <h1>${cv.title}</h1>
+            <pre>${JSON.stringify(cv.data, null, 2)}</pre>
+        </body>
+        </html>
+    `;
 
-    return Packer.toBuffer(doc);
-  }
+    const docxBuffer = htmlDocx.asBlob(html);
+
+    const buffer = Buffer.from(await docxBuffer.arrayBuffer());
+
+    return buffer;
+    }
 
   async exportToJson(id: string, userId: string): Promise<string> {
     const cv = await this.findOne(id, userId);

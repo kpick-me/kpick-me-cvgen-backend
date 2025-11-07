@@ -1,52 +1,60 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Interview } from './interview.entity';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  Req,
+  UseGuards,
+  NotFoundException,
+} from '@nestjs/common';
+import { InterviewService } from './interview.service';
+import type { Request } from 'express';
 
-@Injectable()
-export class InterviewService {
-  constructor(
-    @InjectRepository(Interview)
-    private interviewRepository: Repository<Interview>,
-  ) {}
+@Controller('interviews')
+export class InterviewController {
+  constructor(private readonly interviewService: InterviewService) {}
 
-  async findAllByUser(userId: string): Promise<Interview[]> {
-    return this.interviewRepository.find({ where: { user: { id: userId } } });
+  @Get()
+  async findAll(@Req() req: Request) {
+    const userId = (req.user as any).id;
+    return this.interviewService.findAllByUser(userId);
   }
 
-  async findOne(id: string, userId: string): Promise<Interview> {
-    return this.interviewRepository.findOne({
-      where: { id, user: { id: userId } },
-    });
+  @Get(':id')
+  async findOne(@Param('id') id: string, @Req() req: Request) {
+    const userId = (req.user as any).id;
+    const interview = await this.interviewService.findOne(id, userId);
+    if (!interview) throw new NotFoundException('Interview not found');
+    return interview;
   }
 
-  async startInterview(role: string, cvId: string, userId: string) {
-    // Generate questions using AI (placeholder)
-    const questions = [
-      { question: 'Tell me about yourself', answer: '', feedback: '', score: 0 },
-      { question: 'Why do you want this role?', answer: '', feedback: '', score: 0 },
-      { question: 'What are your strengths?', answer: '', feedback: '', score: 0 },
-    ];
-
-    const interview = this.interviewRepository.create({
-      role,
-      questions,
-      overallScore: 0,
-      summary: '',
-      user: { id: userId },
-    });
-
-    return this.interviewRepository.save(interview);
+  @Post('start')
+  async startInterview(
+    @Body('role') role: string,
+    @Body('cvId') cvId: string,
+    @Req() req: Request,
+  ) {
+    const userId = (req.user as any).id;
+    return this.interviewService.startInterview(role, cvId, userId);
   }
 
-  async submitAnswer(interviewId: string, questionIndex: number, answer: string, userId: string) {
-    const interview = await this.findOne(interviewId, userId);
-    
-    // Generate feedback using AI (placeholder)
-    interview.questions[questionIndex].answer = answer;
-    interview.questions[questionIndex].feedback = 'Good answer with room for improvement';
-    interview.questions[questionIndex].score = 7;
+  @Post(':id/answer')
+  async submitAnswer(
+    @Param('id') interviewId: string,
+    @Body('questionIndex') questionIndex: number,
+    @Body('answer') answer: string,
+    @Req() req: Request,
+  ) {
+    const userId = (req.user as any).id;
+    const updatedInterview = await this.interviewService.submitAnswer(
+      interviewId,
+      questionIndex,
+      answer,
+      userId,
+    );
 
-    return this.interviewRepository.save(interview);
+    if (!updatedInterview) throw new NotFoundException('Interview not found');
+    return updatedInterview;
   }
 }
