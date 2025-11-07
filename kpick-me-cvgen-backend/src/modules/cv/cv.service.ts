@@ -191,4 +191,63 @@ export class CvService {
       },
     });
   }
+
+  getTemplates() {
+    return [
+      { id: 'modern', name: 'Modern', description: 'Clean and contemporary design' },
+      { id: 'classic', name: 'Classic', description: 'Traditional professional format' },
+      { id: 'creative', name: 'Creative', description: 'Bold and innovative layout' },
+    ];
+  }
+
+  async createFromWizard(wizardData: any, userId: string): Promise<CV> {
+    const content = {
+      title: `${wizardData.fullName} - Resume`,
+      body: {
+        personalInfo: {
+          fullName: wizardData.fullName,
+          email: wizardData.email,
+          phone: wizardData.phone,
+          location: wizardData.location,
+          summary: wizardData.summary,
+        },
+        experience: wizardData.experience || [],
+        education: wizardData.education || [],
+        skills: wizardData.skills || [],
+        projects: wizardData.projects || [],
+      },
+    };
+
+    return this.prisma.cV.create({
+      data: {
+        userId,
+        template: wizardData.template || 'modern',
+        content,
+      },
+    });
+  }
+
+  async previewCv(id: string, userId: string, template?: string) {
+    const cv = await this.findOne(id, userId);
+    const selectedTemplate = template || cv.template;
+    
+    return {
+      ...cv,
+      template: selectedTemplate,
+      preview: this.generatePreview((cv.content as any)?.body || cv.content, selectedTemplate),
+    };
+  }
+
+  private generatePreview(content: any, template: string) {
+    const styles = {
+      modern: { fontSize: '14px', fontFamily: 'Inter, sans-serif', color: '#333' },
+      classic: { fontSize: '12px', fontFamily: 'Times New Roman, serif', color: '#000' },
+      creative: { fontSize: '15px', fontFamily: 'Poppins, sans-serif', color: '#1a1a1a' },
+    };
+
+    return {
+      style: styles[template] || styles.modern,
+      content,
+    };
+  }
 }

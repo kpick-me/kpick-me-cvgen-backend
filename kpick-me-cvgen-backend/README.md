@@ -1,98 +1,184 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# KPick-Me CV Generator Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+AI-powered job search platform helping students find employment through CV generation, interview simulation, and skills training.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Technologies
 
-## Description
+- NestJS + TypeScript
+- PostgreSQL (Railway) + Prisma ORM
+- Claude Sonnet 4 AI
+- Redis (optional caching)
+- Google OAuth
+- JWT authentication
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+## Quick Start
 
 ```bash
-$ npm install
+npm install
+npx prisma generate
+npm run start:dev
 ```
 
-## Compile and run the project
+Server runs at `http://localhost:3000`
+
+## Environment Variables
+
+Create `.env` file:
+
+```env
+DATABASE_URL=postgresql://...
+JWT_SECRET=your-secret-key-min-32-chars
+ANTHROPIC_API_KEY=sk-ant-...
+FRONTEND_URL=http://localhost:5173
+REDIS_URL=redis://localhost:6379
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+```
+
+## Demo Login
+
+1. Visit `/auth/google`
+2. Login with Google account
+3. Access dashboard at `/dashboard`
+
+## Features
+
+### Dashboard (`/dashboard`)
+- User statistics and progress
+- Quick actions
+- Recent activity
+
+### CV Builder (`/cv`)
+- Wizard with validation (`POST /cv/wizard`)
+- 3 templates: Modern, Classic, Creative
+- AI generation (`POST /cv/generate-with-ai`)
+- Preview (`GET /cv/:id/preview?template=modern`)
+- Export: PDF, DOCX, JSON
+
+### Interview Simulator (`/interviews`)
+- 8 interview questions
+- Timer tracking per question
+- Scoring and feedback
+- Summary report
+
+### Training (`/training`)
+- 3 quizzes: JavaScript, TypeScript, React
+- Progress tracking
+- Score calculation
+- Completion status
+
+### User Profile (`/users`)
+- Profile view (`GET /users/me`)
+- Data export (`GET /users/me/export`)
+- Account deletion (`DELETE /users/me`)
+
+## API Endpoints
+
+**Auth:**
+- `GET /auth/google` - OAuth login
+- `GET /auth/google/callback` - OAuth callback
+- `GET /auth/me` - Current user
+
+**Dashboard:**
+- `GET /dashboard` - User dashboard
+- `GET /dashboard/stats` - Statistics
+
+**CV:**
+- `POST /cv/wizard` - Create via wizard
+- `GET /cv/templates` - Available templates
+- `GET /cv/:id/preview` - Preview with template
+- `POST /cv/generate-with-ai` - AI generation
+- `POST /cv/:id/enhance-with-ai` - AI enhancement
+- `GET /cv/:id/export/pdf` - Export PDF
+- `GET /cv/:id/export/docx` - Export DOCX
+
+**Interview:**
+- `POST /interviews/start` - Start interview
+- `POST /interviews/:id/answer` - Submit answer
+- `GET /interviews/:id` - Get results
+
+**Training:**
+- `GET /training/challenges` - List quizzes
+- `POST /training/submit` - Submit quiz
+- `GET /training/progress` - User progress
+
+**User:**
+- `GET /users/me/export` - Export all data
+- `DELETE /users/me` - Delete account
+
+## Data Storage
+
+All data stored in PostgreSQL:
+- `user` - User profiles (email, name, Google ID)
+- `cv` - Generated CVs (content, template, metadata)
+- `interview` - Interview sessions (questions, answers, scores)
+- `training_progress` - Quiz results (scores, attempts)
+
+### Data Privacy
+
+- No plain passwords (Google OAuth only)
+- User can export all data (GDPR compliance)
+- User can delete account and all data
+- No analytics by default
+- All endpoints require authentication
+
+### Data Deletion
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+curl -X DELETE http://localhost:3000/users/me \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-## Run tests
+## Example Flows
+
+### Create CV
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+curl -X POST http://localhost:3000/cv/wizard \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fullName": "John Doe",
+    "email": "john@example.com",
+    "phone": "+1234567890",
+    "skills": ["JavaScript", "React", "Node.js"],
+    "template": "modern"
+  }'
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Start Interview
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+curl -X POST http://localhost:3000/interviews/start \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"role": "Frontend Developer", "cvId": "cv_id"}'
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Take Quiz
 
-## Resources
+```bash
+curl -X POST http://localhost:3000/training/submit \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"challengeId": "1", "solution": [0, 1, 1]}'
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+## Bonus Features Implemented
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- TypeScript (+1.5 points)
+- Multiple export formats: PDF, DOCX, JSON (+3 points)
+- Multiple CV templates (+implicit)
+- AI integration beyond mandatory (+5 points)
+- User data export/deletion (GDPR)
 
-## Support
+## Build & Deploy
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```bash
+npm run build
+npm run start:prod
+```
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+MIT

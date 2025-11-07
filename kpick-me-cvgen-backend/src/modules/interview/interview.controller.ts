@@ -44,6 +44,7 @@ export class InterviewController {
     @Param('id') interviewId: string,
     @Body('questionIndex') questionIndex: number,
     @Body('answer') answer: string,
+    @Body('timeSpent') timeSpent: number,
     @Req() req: Request,
   ) {
     const userId = (req.user as any).id;
@@ -52,6 +53,7 @@ export class InterviewController {
       questionIndex,
       answer,
       userId,
+      timeSpent,
     );
 
     if (!updatedInterview) throw new NotFoundException('Interview not found');

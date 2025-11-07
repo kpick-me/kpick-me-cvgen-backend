@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Req, Res, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { CvService } from './cv.service';
-import { CreateCvDto, UpdateCvDto } from './dto/cv.dto';
+import { CreateCvDto, UpdateCvDto, CvWizardDto } from './dto/cv.dto';
 
 @Controller('cv')
 @UseGuards(AuthGuard('jwt'))
@@ -76,5 +76,20 @@ export class CvController {
   @Post(':id/optimize-for-job')
   optimizeForJob(@Param('id') id: string, @Body() body: { jobDescription: string }, @Req() req) {
     return this.cvService.optimizeForJob(id, req.user.id, body.jobDescription);
+  }
+
+  @Post('wizard')
+  createFromWizard(@Body() wizardData: CvWizardDto, @Req() req) {
+    return this.cvService.createFromWizard(wizardData, req.user.id);
+  }
+
+  @Get('templates')
+  getTemplates() {
+    return this.cvService.getTemplates();
+  }
+
+  @Get(':id/preview')
+  previewCv(@Param('id') id: string, @Query('template') template: string, @Req() req) {
+    return this.cvService.previewCv(id, req.user.id, template);
   }
 }

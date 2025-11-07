@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Delete,
   Param,
   Req,
   UseGuards,
@@ -19,6 +20,16 @@ export class UserController {
     const user = await this.userService.findById(req.user.id);
     if (!user) throw new NotFoundException('User not found');
     return user;
+  }
+
+  @Get('me/export')
+  async exportData(@Req() req) {
+    return this.userService.exportUserData(req.user.id);
+  }
+
+  @Delete('me')
+  async deleteAccount(@Req() req) {
+    return this.userService.deleteUserData(req.user.id);
   }
 
   @Get(':id')

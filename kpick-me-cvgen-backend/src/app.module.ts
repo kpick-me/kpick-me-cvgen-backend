@@ -8,6 +8,7 @@ import { UserModule } from './modules/user/user.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { CacheModule } from './modules/cache/cache.module';
 import { AiModule } from './modules/ai/ai.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AiModule } from './modules/ai/ai.module';
     CacheModule,
     AiModule,
     AuthModule,
+    DashboardModule,
     CvModule,
     InterviewModule,
     TrainingModule,
