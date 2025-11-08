@@ -47,6 +47,11 @@ export class AuthController {
       }
     }
 
+    // Ensure backendOrigin includes scheme (Google requires absolute redirect_uri)
+    if (backendOrigin && !/^https?:\/\//i.test(backendOrigin)) {
+      backendOrigin = `https://${backendOrigin}`;
+    }
+
     const normalizedBackend = backendOrigin.endsWith('/') ? backendOrigin.slice(0, -1) : backendOrigin;
     const redirectUri = `${normalizedBackend}/auth/google/callback`;
 
@@ -96,6 +101,11 @@ export class AuthController {
       } else {
         backendOrigin = `${req.protocol}://${req.get('host')}`;
       }
+    }
+
+    // Ensure backendOrigin includes scheme (Google requires absolute redirect_uri)
+    if (backendOrigin && !/^https?:\/\//i.test(backendOrigin)) {
+      backendOrigin = `https://${backendOrigin}`;
     }
 
     const normalizedBackend = backendOrigin.endsWith('/') ? backendOrigin.slice(0, -1) : backendOrigin;
