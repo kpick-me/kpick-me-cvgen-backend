@@ -32,7 +32,30 @@ export class AuthController {
     // req.user is set by GoogleStrategy.validate()
     const user = await this.authService.findOrCreateUser(req.user);
     const token = await this.authService.getJwtToken(user);
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+
+    // Prefer explicit FRONTEND_URL env var, but if missing try to derive the URL
+    // from request headers (useful when behind proxies like Railway / Vercel).
+    // Order of precedence:
+    // 1. FRONTEND_URL env var
+    // 2. X-Forwarded-Proto + X-Forwarded-Host headers
+    // 3. Origin header
+    // 4. req.protocol + req.get('host')
+    let frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    if (!frontendUrl) {
+      const forwardedProto = (req.headers['x-forwarded-proto'] as string) || '';
+      const forwardedHost = (req.headers['x-forwarded-host'] as string) || (req.headers['x-forwarded-server'] as string) || '';
+      if (forwardedProto && forwardedHost) {
+        // x-forwarded-proto may contain a comma-separated list
+        const proto = forwardedProto.split(',')[0].trim();
+        const host = forwardedHost.split(',')[0].trim();
+        frontendUrl = `${proto}://${host}`;
+      } else if (req.headers.origin) {
+        frontendUrl = req.headers.origin as string;
+      } else {
+        frontendUrl = `${req.protocol}://${req.get('host')}`;
+      }
+    }
+
     const normalizedUrl = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
 
     return res.redirect(`${normalizedUrl}/auth/success?token=${token}`);
