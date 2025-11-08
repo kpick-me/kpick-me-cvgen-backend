@@ -79,8 +79,17 @@ export class AuthController {
       return res.status(500).send('Google client ID not configured');
     }
 
-    const normalizedBackend = this.computeBackendOrigin(req);
-    const redirectUri = `${normalizedBackend}/auth/google/callback`;
+    // If GOOGLE_CALLBACK_URL is explicitly set, prefer it (must be absolute)
+    let redirectUri = this.configService.get<string>('GOOGLE_CALLBACK_URL') || '';
+    if (!redirectUri) {
+      const normalizedBackend = this.computeBackendOrigin(req);
+      redirectUri = `${normalizedBackend}/auth/google/callback`;
+    } else {
+      // ensure it has no trailing slash
+      redirectUri = redirectUri.endsWith('/') ? redirectUri.slice(0, -1) : redirectUri;
+    }
+
+    this.logger.log(`Using redirect_uri=${redirectUri}`);
 
     this.logger.log(`Initiating Google OAuth; redirect_uri=${redirectUri}`);
 
@@ -123,8 +132,16 @@ export class AuthController {
       return res.status(500).send('Google OAuth not configured');
     }
 
-    const normalizedBackend = this.computeBackendOrigin(req);
-    const redirectUri = `${normalizedBackend}/auth/google/callback`;
+    // If GOOGLE_CALLBACK_URL is provided, use it for the token exchange (must match what was used to start auth)
+    let redirectUri = this.configService.get<string>('GOOGLE_CALLBACK_URL') || '';
+    if (!redirectUri) {
+      const normalizedBackend = this.computeBackendOrigin(req);
+      redirectUri = `${normalizedBackend}/auth/google/callback`;
+    } else {
+      redirectUri = redirectUri.endsWith('/') ? redirectUri.slice(0, -1) : redirectUri;
+    }
+
+    this.logger.log(`Exchanging code using redirect_uri=${redirectUri}`);
 
     try {
       const params = new URLSearchParams();
