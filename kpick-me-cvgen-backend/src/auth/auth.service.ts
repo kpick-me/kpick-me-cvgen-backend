@@ -19,7 +19,7 @@ export class AuthService {
       throw new Error('Email not provided by OAuth provider');
     }
 
-  let user: any = null;
+    let user: any = null;
 
     // Prefer lookup by googleId when available. Guard against missing DB column (P2022).
     if (googleId) {
@@ -55,5 +55,17 @@ export class AuthService {
   async getJwtToken(user: any) {
     const payload = { sub: user.id, email: user.email };
     return this.jwtService.sign(payload);
+  }
+
+  async getUserProfile(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+      },
+    });
   }
 }

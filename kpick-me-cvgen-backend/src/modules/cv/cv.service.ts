@@ -73,6 +73,8 @@ export class CvService {
   async generateShareLink(id: string, userId: string): Promise<{ link: string }> {
     const cv = await this.findOne(id, userId);
     const shareToken = Buffer.from(`${cv.id}:${Date.now()}`).toString('base64');
-    return { link: `${process.env.FRONTEND_URL}/cv/share/${shareToken}` };
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0].trim();
+    const normalizedUrl = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
+    return { link: `${normalizedUrl}/cv/share/${shareToken}` };
   }
 }

@@ -9,7 +9,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private readonly config: ConfigService) {
     const clientID = config.get<string>('GOOGLE_CLIENT_ID');
     const clientSecret = config.get<string>('GOOGLE_CLIENT_SECRET');
-    const callbackURL = config.get<string>('GOOGLE_CALLBACK_URL') || 'http://localhost:3000/auth/google/callback';
+    const backendUrl = config.get<string>('BACKEND_URL') || 'http://localhost:3001';
+    const normalizedBackendUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+    const callbackURL =
+      config.get<string>('GOOGLE_CALLBACK_URL') || `${normalizedBackendUrl}/auth/google/callback`;
 
     // Call super first (required) with values or empty strings — we'll warn after if missing
     super({

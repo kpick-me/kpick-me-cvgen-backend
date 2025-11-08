@@ -1,17 +1,19 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
+  NotFoundException,
   Param,
-  Body,
+  Post,
   Req,
   UseGuards,
-  NotFoundException,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { InterviewService } from './interview.service';
 import type { Request } from 'express';
 
 @Controller('interviews')
+@UseGuards(AuthGuard('jwt'))
 export class InterviewController {
   constructor(private readonly interviewService: InterviewService) {}
 
