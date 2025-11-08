@@ -5,6 +5,7 @@ import {
   Req,
   Res,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
@@ -17,6 +18,8 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {}
+
+  private readonly logger = new Logger(AuthController.name);
 
   // Redirects to Google for authentication
   @Get('google')
@@ -58,7 +61,21 @@ export class AuthController {
 
     const normalizedUrl = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
 
-    return res.redirect(`${normalizedUrl}/auth/success?token=${token}`);
+    // Ensure we have an absolute URL (avoid open redirect to relative paths)
+    let redirectBase = normalizedUrl;
+    try {
+      // This will throw if redirectBase is not a valid absolute URL
+      const u = new URL(redirectBase);
+      redirectBase = `${u.protocol}//${u.host}`;
+    } catch (e) {
+      this.logger.warn(`Derived frontend URL is not an absolute URL: ${normalizedUrl}. Falling back to '/'`);
+      return res.redirect('/');
+    }
+
+    const safeToken = encodeURIComponent(token);
+    const redirectTo = `${redirectBase}/auth/success?token=${safeToken}`;
+    this.logger.log(`Redirecting user to frontend after OAuth: ${redirectTo}`);
+    return res.redirect(redirectTo);
   }
 
   @Get('me')

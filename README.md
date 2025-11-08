@@ -15,6 +15,23 @@ All endpoints require JWT authentication. First, authenticate with Google OAuth:
 curl -X GET "http://localhost:3000/auth/google"
 ```
 
+### Deployment notes (OAuth redirect)
+
+When deployed, ensure your backend and frontend environment variables and Google OAuth settings are configured so the flow redirects back to the frontend correctly:
+
+- Backend env vars (e.g. Railway):
+  - `BACKEND_URL` = https://kpick-me-back.up.railway.app (used to compute OAuth callback when `GOOGLE_CALLBACK_URL` not set)
+  - `FRONTEND_URL` = https://kpick-me-cvgen-frontend.vercel.app (optional but recommended; if set the backend will always redirect to this origin after successful OAuth)
+  - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+  - (optional) `GOOGLE_CALLBACK_URL` = https://kpick-me-back.up.railway.app/auth/google/callback — if present this overrides the `BACKEND_URL`-derived callback URL
+
+- Google Cloud Console (Credentials) settings:
+  - Authorized redirect URI: `https://kpick-me-back.up.railway.app/auth/google/callback`
+  - Authorized origin (if used): `https://kpick-me-cvgen-frontend.vercel.app`
+
+The backend will attempt to derive the frontend origin from `FRONTEND_URL` first. If `FRONTEND_URL` is not set the backend will try to use `X-Forwarded-Proto` and `X-Forwarded-Host` headers (useful when behind proxies such as Railway / Vercel), then `Origin`, and finally `req.protocol` + `req.get('host')` as a fallback. The frontend expects the redirect to land at `/auth/success?token=JWT_TOKEN` where it will persist the token.
+
+
 After successful authentication, use the JWT token in all subsequent requests:
 
 ```bash
