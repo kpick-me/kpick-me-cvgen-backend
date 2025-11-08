@@ -74,7 +74,6 @@ model TrainingProgress {
   status        String
   score         Int
   attempts      Int
-  submittedAt   DateTime @default(now())
 
   @@map("training_progress")
 }

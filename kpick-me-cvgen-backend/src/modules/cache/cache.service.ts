@@ -26,7 +26,24 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-      this.logger.log(`Connecting to Redis at ${redisUrl}...`);
+      
+      // Check if using Railway internal URL from local machine
+      if (redisUrl.includes('redis.railway.internal')) {
+        this.logger.error(
+          '❌ Cannot connect to redis.railway.internal from local machine!\n' +
+          '   This hostname only works inside Railway\'s network.\n' +
+          '   To fix:\n' +
+          '   1. Go to Railway dashboard → Redis service → Variables\n' +
+          '   2. Find REDIS_PUBLIC_URL or create a TCP proxy\n' +
+          '   3. Use format: redis://default:PASSWORD@HOST:PORT\n' +
+          '   4. Update .env with the public URL\n' +
+          '   For now, caching is disabled.'
+        );
+        this.isConnected = false;
+        return;
+      }
+
+      this.logger.log(`Connecting to Redis...`);
 
       const redisOptions: any = {
         retryStrategy: (times) => {
@@ -39,6 +56,8 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
         },
         maxRetriesPerRequest: 3,
         enableOfflineQueue: false,
+        connectTimeout: 10000,
+        lazyConnect: true, // Don't connect immediately
       };
 
       if (redisUrl.includes('upstash.io') || redisUrl.startsWith('rediss://')) {
@@ -51,22 +70,44 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
 
       this.redisClient.on('connect', () => {
         this.isConnected = true;
-        this.logger.log('Redis connected successfully');
+        this.logger.log('✅ Redis connected successfully');
       });
 
       this.redisClient.on('error', (err) => {
-        this.logger.error('Redis connection error:', err.message);
+        this.logger.error(`Redis connection error: ${err.message}`);
         this.isConnected = false;
       });
 
       this.redisClient.on('ready', () => {
         this.isConnected = true;
-        this.logger.log('Redis client ready');
+        this.logger.log('✅ Redis client ready');
       });
 
+      this.redisClient.on('close', () => {
+        this.isConnected = false;
+        this.logger.warn('Redis connection closed');
+      });
+
+      // Try to connect
+      await this.redisClient.connect();
+      
+      // Test connection
+      await this.redisClient.ping();
+      this.logger.log('✅ Redis ping successful');
+
     } catch (error) {
-      this.logger.error('Failed to initialize Redis:', error.message);
+      this.logger.error(`Failed to initialize Redis: ${error.message}`);
+      this.logger.warn('Continuing without Redis caching...');
       this.isConnected = false;
+      
+      // Disconnect if partially connected
+      if (this.redisClient) {
+        try {
+          await this.redisClient.disconnect();
+        } catch (e) {
+          // Ignore disconnect errors
+        }
+      }
     }
   }
 

@@ -6,7 +6,7 @@ export class DashboardService {
   constructor(private prisma: PrismaService) {}
 
   async getUserDashboard(userId: string) {
-    const [user, cvCount, interviews, progress] = await Promise.all([
+    const [user, cvCount, interviews] = await Promise.all([
       this.prisma.user.findUnique({ where: { id: userId } }),
       this.prisma.cV.count({ where: { userId } }),
       this.prisma.interview.findMany({ 
@@ -14,12 +14,22 @@ export class DashboardService {
         orderBy: { createdAt: 'desc' },
         take: 5,
       }),
-      this.prisma.trainingProgress.findMany({ 
-        where: { userId },
-        orderBy: { submittedAt: 'desc' },
-        take: 5,
-      }),
     ]);
+
+    // Fetch training progress separately with defensive error handling in case DB/prisma client
+    ///schema are out-of-sync and reference a non-existing column.
+    let progress = [] as any[];
+    try {
+      progress = await this.prisma.trainingProgress.findMany({ where: { userId }, take: 5 });
+    } catch (err: any) {
+      // If the database schema doesn't match (Prisma P2022) or any other runtime error occurs,
+      // fallback to an empty array so dashboard still responds.
+      if (err?.code === 'P2022' || (err?.message && err.message.includes('submittedAt'))) {
+        progress = [];
+      } else {
+        throw err;
+      }
+    }
 
     return {
       user,
@@ -40,11 +50,21 @@ export class DashboardService {
   }
 
   async getUserStats(userId: string) {
-    const [cvs, interviews, progress] = await Promise.all([
+    const [cvs, interviews] = await Promise.all([
       this.prisma.cV.findMany({ where: { userId } }),
       this.prisma.interview.findMany({ where: { userId } }),
-      this.prisma.trainingProgress.findMany({ where: { userId } }),
     ]);
+
+    let progress = [] as any[];
+    try {
+      progress = await this.prisma.trainingProgress.findMany({ where: { userId } });
+    } catch (err: any) {
+      if (err?.code === 'P2022' || (err?.message && err.message.includes('submittedAt'))) {
+        progress = [];
+      } else {
+        throw err;
+      }
+    }
 
     return {
       totalCVs: cvs.length,
