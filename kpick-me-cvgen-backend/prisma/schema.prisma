@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  createdAt DateTime  @default(now())
+  profile   Profile?
+  cvs       CV[]
+
+  googleId  String? @unique
+
+  interviews      Interview[]
+  trainingProgress TrainingProgress[]
+
+  @@map("user")
+}
+
+model Profile {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String   @unique
+  education  String[] @default([])
+  experience String[] @default([])
+  skills     String[] @default([])
+  projects   String[] @default([])
+
+  @@map("profile")
+}
+
+model CV {
+  id        String    @id @default(cuid())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  content   Json
+  template  String
+  version   Int       @default(1)
+  createdAt DateTime  @default(now())
+
+  @@map("cv")
+}
+
+model Interview {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  role         String
+  questions    Json     // Зберігатиме масив питань/відповідей
+  overallScore Int      @default(0)
+  summary      String
+  createdAt    DateTime @default(now())
+
+  @@map("interview")
+}
+
+model TrainingProgress {
+  id            String   @id @default(cuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  challengeId   String
+  challengeType String
+  status        String
+  score         Int
+  attempts      Int
+  submittedAt   DateTime @default(now())
+
+  @@map("training_progress")
+}
