@@ -21,17 +21,8 @@ export class AuthController {
 
   private readonly logger = new Logger(AuthController.name);
 
-  // Redirects to Google for authentication
-  @Get('google')
-  async googleAuth(@Req() req: any, @Res() res: Response) {
-    // Build a redirect to Google's OAuth 2.0 endpoint with a redirect_uri that matches
-    // the current backend origin (derived from BACKEND_URL env or forwarded headers).
-    const clientID = this.configService.get<string>('GOOGLE_CLIENT_ID');
-    if (!clientID) {
-      return res.status(500).send('Google client ID not configured');
-    }
-
-    // Derive backend origin (where Google should redirect back to)
+  // Compute backend origin used for redirect_uri
+  private computeBackendOrigin(req: any) {
     let backendOrigin = this.configService.get<string>('BACKEND_URL');
     if (!backendOrigin) {
       const forwardedProto = (req.headers['x-forwarded-proto'] as string) || '';
@@ -47,13 +38,58 @@ export class AuthController {
       }
     }
 
-    // Ensure backendOrigin includes scheme (Google requires absolute redirect_uri)
     if (backendOrigin && !/^https?:\/\//i.test(backendOrigin)) {
       backendOrigin = `https://${backendOrigin}`;
     }
 
-    const normalizedBackend = backendOrigin.endsWith('/') ? backendOrigin.slice(0, -1) : backendOrigin;
+    return backendOrigin.endsWith('/') ? backendOrigin.slice(0, -1) : backendOrigin;
+  }
+
+  // Compute frontend origin where we will redirect after successful auth
+  private computeFrontendOrigin(req: any) {
+    let frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    if (!frontendUrl) {
+      const forwardedProto = (req.headers['x-forwarded-proto'] as string) || '';
+      const forwardedHost = (req.headers['x-forwarded-host'] as string) || (req.headers['x-forwarded-server'] as string) || '';
+      if (forwardedProto && forwardedHost) {
+        const proto = forwardedProto.split(',')[0].trim();
+        const host = forwardedHost.split(',')[0].trim();
+        frontendUrl = `${proto}://${host}`;
+      } else if (req.headers.origin) {
+        frontendUrl = req.headers.origin as string;
+      } else {
+        frontendUrl = `${req.protocol}://${req.get('host')}`;
+      }
+    }
+
+    if (frontendUrl && !/^https?:\/\//i.test(frontendUrl)) {
+      frontendUrl = `https://${frontendUrl}`;
+    }
+
+    return frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
+  }
+
+  // Redirects to Google for authentication
+  @Get('google')
+  async googleAuth(@Req() req: any, @Res() res: Response) {
+    // Build a redirect to Google's OAuth 2.0 endpoint with a redirect_uri that matches
+    // the current backend origin (derived from BACKEND_URL env or forwarded headers).
+    const clientID = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    if (!clientID) {
+      return res.status(500).send('Google client ID not configured');
+    }
+
+    const normalizedBackend = this.computeBackendOrigin(req);
     const redirectUri = `${normalizedBackend}/auth/google/callback`;
+
+    this.logger.log(`Initiating Google OAuth; redirect_uri=${redirectUri}`);
+
+    try {
+      // nothing else here for now; keep redirect below
+    } catch (err: any) {
+      this.logger.error('Error preparing Google OAuth redirect', err?.stack || err?.message || err);
+      return res.status(500).send('Failed to initiate Google OAuth');
+    }
 
     const scope = encodeURIComponent('openid email profile');
     const url = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${encodeURIComponent(
@@ -87,28 +123,7 @@ export class AuthController {
       return res.status(500).send('Google OAuth not configured');
     }
 
-    // Derive backend origin used as redirect_uri (should match what we used when redirecting to Google)
-    let backendOrigin = this.configService.get<string>('BACKEND_URL');
-    if (!backendOrigin) {
-      const forwardedProto = (req.headers['x-forwarded-proto'] as string) || '';
-      const forwardedHost = (req.headers['x-forwarded-host'] as string) || (req.headers['x-forwarded-server'] as string) || '';
-      if (forwardedProto && forwardedHost) {
-        const proto = forwardedProto.split(',')[0].trim();
-        const host = forwardedHost.split(',')[0].trim();
-        backendOrigin = `${proto}://${host}`;
-      } else if (req.headers.origin) {
-        backendOrigin = req.headers.origin as string;
-      } else {
-        backendOrigin = `${req.protocol}://${req.get('host')}`;
-      }
-    }
-
-    // Ensure backendOrigin includes scheme (Google requires absolute redirect_uri)
-    if (backendOrigin && !/^https?:\/\//i.test(backendOrigin)) {
-      backendOrigin = `https://${backendOrigin}`;
-    }
-
-    const normalizedBackend = backendOrigin.endsWith('/') ? backendOrigin.slice(0, -1) : backendOrigin;
+    const normalizedBackend = this.computeBackendOrigin(req);
     const redirectUri = `${normalizedBackend}/auth/google/callback`;
 
     try {
@@ -179,6 +194,16 @@ export class AuthController {
       this.logger.error('Error handling Google callback', err?.stack || err?.message || err);
       return res.status(500).send('Internal error handling OAuth callback');
     }
+  }
+
+  // Debug endpoint to show computed URLs (useful during configuration)
+  @Get('debug')
+  async debug(@Req() req: any, @Res() res: Response) {
+    const backendOrigin = this.computeBackendOrigin(req);
+    const redirectUri = `${backendOrigin}/auth/google/callback`;
+    const frontendOrigin = this.computeFrontendOrigin(req);
+    const redirectToFrontend = `${frontendOrigin}/auth/success?token=JWT_TOKEN_SAMPLE`;
+    return res.json({ backendOrigin, redirectUri, frontendOrigin, redirectToFrontend });
   }
 
   @Get('me')
