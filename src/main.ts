@@ -10,7 +10,7 @@ async function bootstrap() {
   const allowedOrigins = rawOrigins.split(',').map((origin) => origin.trim());
 
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: 'https://kpick-me-cvgen-frontend.vercel.app',
     credentials: true,
   });
 
